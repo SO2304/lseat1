@@ -1,0 +1,168 @@
+---
+// Le monogramme LSEAT ci-dessous est de l'identite de marque (SVG maison) :
+// il n'est PAS un icone Lucide et n'est pas converti.
+import { Mail } from '@lucide/astro';
+
+const year = new Date().getFullYear();
+
+const isHome = Astro.url.pathname.replace(/\/+$/, '') === '';
+
+const solutionLinks = [
+  { label: 'Cinématique 3D', hash: '#kinematics' },
+  { label: 'Compliance 16G', hash: '#compliance' },
+  { label: 'Simulateur ROI flotte', hash: '#roi' },
+].map((link) => ({ label: link.label, href: isHome ? link.hash : `/${link.hash}` }));
+
+const engineeringLinks = [
+  {
+    label: 'Dossier Technique Form 1',
+    href: 'mailto:contact@lseat.eu?subject=Demande%20dossier%20technique%20EASA%20Form%201',
+  },
+  {
+    label: 'Documentation Part 21J',
+    href: 'mailto:contact@lseat.eu?subject=Demande%20documentation%20Part%2021J',
+  },
+  { label: 'Procédures MRO', href: '#retrofit' },
+  { label: 'Contact', href: '#contact' },
+];
+
+const legalItems = ['Mentions légales', 'Politique de confidentialité', 'Conditions CGV'];
+---
+
+<footer class="glassmorphism border-t-2 border-t-electric-cyan/25 bg-deep-navy" role="contentinfo">
+  <div class="section-container py-16 md:py-20">
+    <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+      <div>
+        <svg
+          viewBox="0 0 196 48"
+          class="h-9 w-auto"
+          role="img"
+          aria-label="LSEAT Aerospace"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g class="lseat-accent-footer">
+            <path d="M20 40 L34 8 L50 8 L36 40 Z" fill="url(#lseat-accent-footer)" />
+            <path d="M20 40 L24.4 32 L40.4 32 L36 40 Z" fill="#FFFFFF" fill-opacity="0.9" />
+          </g>
+          <text
+            x="58"
+            y="33"
+            fill="#FFFFFF"
+            font-family="Plus Jakarta Sans, Inter, system-ui, sans-serif"
+            font-size="22"
+            font-weight="800"
+            letter-spacing="2">LSEAT</text>
+          <rect x="58" y="37" width="86" height="2" rx="1" fill="#00D2FE" fill-opacity="0.55" />
+          <defs>
+            <linearGradient id="lseat-accent-footer" x1="20" y1="8" x2="50" y2="40" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00D2FE" />
+              <stop offset="1" stop-color="#0284C7" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <p class="mt-6 max-w-xs text-body-sm text-pure-white/70">
+          Conception et fabrication de kits de conversion ergonomique passager à mode sommeil pour
+          cabines d'aéronefs commerciaux. Dossiers de certification EASA Part 21J et FAA Part 21.
+        </p>
+        <p class="mt-3 max-w-xs text-body-sm text-pure-white/70">
+          Applicable à la conversion cabine, au retrofit MRO et à la construction en série.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-2">
+          <span class="badge-cert">EASA Part 21J</span>
+          <span class="badge-cert">FAA Part 21</span>
+        </div>
+      </div>
+
+      <nav aria-labelledby="footer-solution">
+        <h2 id="footer-solution" class="text-caption text-pure-white/50">Solution</h2>
+        <ul class="mt-5 space-y-1">
+          {
+            solutionLinks.map((link) => (
+              <li>
+                <a href={link.href} class="btn-ghost px-0 text-pure-white/70 hover:bg-transparent">
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-engineering">
+        <h2 id="footer-engineering" class="text-caption text-pure-white/50">Ingénierie</h2>
+        <ul class="mt-5 space-y-1">
+          {
+            engineeringLinks.map((link) => (
+              <li>
+                <a href={link.href} class="btn-ghost px-0 text-pure-white/70 hover:bg-transparent">
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <section aria-labelledby="footer-contact">
+        <h2 id="footer-contact" class="text-caption text-pure-white/50">Contact</h2>
+        <address class="mt-5 not-italic">
+          <a
+            href="mailto:contact@lseat.eu"
+            class="inline-flex items-center gap-2 text-body-sm font-semibold text-electric-cyan transition-colors duration-200 hover:text-pure-white"
+          >
+            <Mail class="h-4 w-4" stroke-width="2" aria-hidden="true" focusable="false" />
+            contact@lseat.eu
+          </a>
+          <p class="mt-4 text-body-sm font-medium text-pure-white">LSEAT Aerospace</p>
+          <a
+            href="https://lseat.eu"
+            class="mt-1 inline-block text-body-sm text-pure-white/70 transition-colors duration-200 hover:text-electric-cyan"
+          >
+            https://lseat.eu
+          </a>
+        </address>
+
+        <p class="mt-6 text-body-sm text-pure-white/70">
+          Plateforme B2B réservée aux ODA, MRO, constructeurs et auditeurs de certification. Réponse
+          technique sous 48 h ouvrées.
+        </p>
+      </section>
+    </div>
+
+    <div class="mt-14 flex flex-col gap-6 border-t border-pure-white/10 pt-8 lg:flex-row lg:items-center lg:justify-between">
+      <p class="text-body-sm text-pure-white/50">
+        &copy; {year} LSEAT Aerospace. Tous droits réservés. Spécifications soumises à révision
+        sans préavis.
+      </p>
+
+      <div>
+        <p class="text-caption text-pure-white/40">Documents disponibles sur demande</p>
+        <ul class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2" aria-label="Documents légaux">
+          {
+            legalItems.map((item) => (
+              <li>
+                <span
+                  aria-disabled="true"
+                  class="text-body-sm text-pure-white/40 transition-colors duration-200"
+                >
+                  {item}
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .lseat-accent-footer {
+    transform: rotate(-8deg);
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+  }
+</style>

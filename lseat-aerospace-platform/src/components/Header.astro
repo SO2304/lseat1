@@ -1,0 +1,200 @@
+---
+// Le monogramme LSEAT ci-dessous est de l'identite de marque (SVG maison,
+// avec sa rotation au survol) : il n'est PAS un icone Lucide et n'est pas converti.
+import { ArrowRight, Menu, X } from '@lucide/astro';
+
+const pathname = Astro.url.pathname.replace(/\/+$/, '');
+const isHome = pathname === '' || pathname === '/index';
+
+const navLinks = [
+  { label: 'Cinématique 3D', hash: '#kinematics' },
+  { label: 'Compliance 16G', hash: '#compliance' },
+  { label: 'Simulateur ROI', hash: '#roi' },
+  { label: 'Retrofit MRO', hash: '#retrofit' },
+].map((link) => ({ label: link.label, href: isHome ? link.hash : `/${link.hash}` }));
+---
+
+<header class="sticky top-0 z-50 glassmorphism border-b border-electric-cyan/18">
+  <div class="relative h-0.5 w-full bg-titanium-gray/60" aria-hidden="true">
+    <div
+      id="lseat-scroll-progress"
+      class="absolute inset-y-0 left-0 w-0 bg-electric-cyan shadow-glow-cyan"
+    >
+    </div>
+  </div>
+
+  <div class="section-container">
+    <div class="flex h-18 md:h-20 items-center justify-between gap-6">
+      <a
+        href="/"
+        class="group flex items-center gap-3"
+        aria-label="LSEAT Aerospace - retour à l'accueil"
+      >
+        <svg
+          viewBox="0 0 196 48"
+          class="h-8 w-auto md:h-9"
+          role="img"
+          aria-label="LSEAT Aerospace"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g class="lseat-accent">
+            <path d="M20 40 L34 8 L50 8 L36 40 Z" fill="url(#lseat-accent-header)" />
+            <path d="M20 40 L24.4 32 L40.4 32 L36 40 Z" fill="#FFFFFF" fill-opacity="0.9" />
+          </g>
+          <text
+            x="58"
+            y="33"
+            fill="#FFFFFF"
+            font-family="Plus Jakarta Sans, Inter, system-ui, sans-serif"
+            font-size="22"
+            font-weight="800"
+            letter-spacing="2">LSEAT</text>
+          <rect x="58" y="37" width="86" height="2" rx="1" fill="#00D2FE" fill-opacity="0.55" />
+          <defs>
+            <linearGradient id="lseat-accent-header" x1="20" y1="8" x2="50" y2="40" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00D2FE" />
+              <stop offset="1" stop-color="#0284C7" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
+        {
+          navLinks.map((link) => (
+            <a
+              href={link.href}
+              class="btn-ghost"
+            >
+              {link.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div
+        class="hidden lg:block shrink-0 [&_.btn-primary]:px-5 [&_.btn-primary]:py-2.5 [&_.btn-primary]:text-body-sm"
+      >
+        <a href="#contact" class="btn-primary">
+          <span>Contacter un Ingénieur</span>
+          <ArrowRight class="h-4 w-4" stroke-width="2" aria-hidden="true" focusable="false" />
+        </a>
+      </div>
+
+      <button
+        id="lseat-nav-toggle"
+        type="button"
+        class="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-md border border-electric-cyan/30 text-pure-white transition-colors duration-200 hover:border-electric-cyan hover:text-electric-cyan [&[aria-expanded=true]_.icon-open]:hidden [&[aria-expanded=true]_.icon-close]:block"
+        aria-expanded="false"
+        aria-controls="lseat-mobile-menu"
+        aria-label="Ouvrir le menu de navigation"
+      >
+        <Menu class="icon-open h-6 w-6" stroke-width="2" aria-hidden="true" focusable="false" />
+        <X class="icon-close hidden h-6 w-6" stroke-width="2" aria-hidden="true" focusable="false" />
+      </button>
+    </div>
+
+    <span id="retrofit" class="scroll-mt-24" aria-hidden="true"></span>
+
+    <div id="lseat-mobile-menu" class="hidden lg:hidden pb-6">
+      <nav class="flex flex-col gap-1 border-t border-electric-cyan/15 pt-4" aria-label="Navigation mobile">
+        {
+          navLinks.map((link) => (
+            <a href={link.href} class="btn-ghost justify-start text-body-base">
+              {link.label}
+            </a>
+          ))
+        }
+      </nav>
+      <div class="mt-4 [&_.btn-primary]:w-full [&_.btn-primary]:px-5 [&_.btn-primary]:py-3">
+        <a href="#contact" class="btn-primary">
+          <span>Contacter un Ingénieur</span>
+          <ArrowRight class="h-4 w-4" stroke-width="2" aria-hidden="true" focusable="false" />
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  .lseat-accent {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    transform: rotate(0deg);
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  a:hover .lseat-accent,
+  a:focus-visible .lseat-accent {
+    transform: rotate(40deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lseat-accent {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  const initHeader = () => {
+    const toggle = document.getElementById('lseat-nav-toggle') as HTMLButtonElement | null;
+    const menu = document.getElementById('lseat-mobile-menu') as HTMLElement | null;
+    const bar = document.getElementById('lseat-scroll-progress') as HTMLElement | null;
+
+    if (toggle && menu && toggle.dataset.initialized !== 'true') {
+      toggle.dataset.initialized = 'true';
+
+      const setOpen = (open: boolean) => {
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Fermer le menu de navigation' : 'Ouvrir le menu de navigation');
+        menu.classList.toggle('hidden', !open);
+      };
+
+      toggle.addEventListener('click', () => {
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+      });
+
+      menu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setOpen(false));
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if ((event as KeyboardEvent).key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+          setOpen(false);
+          toggle.focus();
+        }
+      });
+
+      setOpen(false);
+    }
+
+    if (bar && bar.dataset.initialized !== 'true') {
+      bar.dataset.initialized = 'true';
+
+      let ticking = false;
+      const update = () => {
+        const doc = document.documentElement;
+        const scrollTop = window.scrollY || doc.scrollTop;
+        const scrollable = doc.scrollHeight - window.innerHeight;
+        const ratio = scrollable > 0 ? Math.min(Math.max(scrollTop / scrollable, 0), 1) : 0;
+        bar.style.width = (ratio * 100).toFixed(2) + '%';
+        ticking = false;
+      };
+      const onScroll = () => {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(update);
+        }
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      update();
+    }
+  };
+
+  initHeader();
+  document.addEventListener('astro:page-load', initHeader);
+</script>

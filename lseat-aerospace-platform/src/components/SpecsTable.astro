@@ -1,0 +1,144 @@
+---
+/**
+ * SpecsTable.astro
+ * Dossier d'ingenierie - Specifications techniques & references normatives.
+ * Icones : @lucide/astro (stroke 1.75).
+ */
+import { ShieldCheck, FileCheck, Factory, Scale, Wrench } from '@lucide/astro';
+
+type SpecCategory = 'LIVRABLES' | 'PRODUCTION' | 'MASSE' | 'MAINTENANCE' | 'CERTIFICATION';
+
+interface SpecRow {
+  category: SpecCategory;
+  parameter: string;
+  value: string;
+  reference: string;
+}
+
+interface CategoryMeta {
+  icon: 'file-check' | 'factory' | 'scale' | 'wrench' | 'shield-check';
+  accent: string;
+  hover: string;
+}
+
+const categoryIcons: Record<CategoryMeta['icon'], typeof ShieldCheck> = {
+  'file-check': FileCheck,
+  factory: Factory,
+  scale: Scale,
+  wrench: Wrench,
+  'shield-check': ShieldCheck,
+};
+
+const categoryMeta: Record<SpecCategory, CategoryMeta> = {
+  LIVRABLES: { icon: 'file-check', accent: 'text-electric-cyan', hover: 'group-hover:border-electric-cyan/50' },
+  PRODUCTION: { icon: 'factory', accent: 'text-aero-blue', hover: 'group-hover:border-aero-blue/50' },
+  MASSE: { icon: 'scale', accent: 'text-pure-white/80', hover: 'group-hover:border-pure-white/30' },
+  MAINTENANCE: { icon: 'wrench', accent: 'text-electric-cyan', hover: 'group-hover:border-electric-cyan/50' },
+  CERTIFICATION: { icon: 'shield-check', accent: 'text-aero-blue', hover: 'group-hover:border-aero-blue/50' },
+};
+
+const certifications = [
+  'EASA Part 21J',
+  'FAA Part 21',
+  'EASA CS-25.562',
+  'FAR-25.562',
+  'TSO-C127',
+  '16G Dynamic Crash Test',
+];
+
+const specs: SpecRow[] = [
+  { category: 'LIVRABLES', parameter: 'Dossier de certification', value: 'EASA Form 1 + Dossier d\'ingénierie complet', reference: 'EASA Part 21J' },
+  { category: 'LIVRABLES', parameter: 'Architecture cinématique', value: '2 cadres composites insérés sous l\'assise d\'origine', reference: 'Brevet LSEAT' },
+  { category: 'PRODUCTION', parameter: 'Chaîne de production', value: 'Sous-traitance certifiée', reference: 'EASA Part 21G' },
+  { category: 'PRODUCTION', parameter: 'Composants mobiles', value: '3 (aucun moteur, aucune électronique)', reference: 'Dossier 21J' },
+  { category: 'MASSE', parameter: 'Masse kit intégré (bloc 3 sièges)', value: '< 1 650 g', reference: 'Tolérance TSO' },
+  { category: 'MASSE', parameter: 'Charge sur pieds de fixation', value: '< 5 kg / 2 pieds', reference: 'Tolérance TSO' },
+  { category: 'MAINTENANCE', parameter: 'Temps d\'installation MRO', value: '< 15 min / siège, sans démontage des rails', reference: 'Procédure A-Check' },
+  { category: 'MAINTENANCE', parameter: 'Réduction coûts de maintenance directe', value: '-75 %', reference: 'Analyse 21J' },
+  { category: 'MAINTENANCE', parameter: 'Composants électriques', value: '0', reference: '0 W' },
+  { category: 'CERTIFICATION', parameter: 'Crash test dynamique', value: '16G CS-25 / FAR-25', reference: 'CS-25.562 / FAR-25.562' },
+  { category: 'CERTIFICATION', parameter: 'Rappel siège vide', value: 'Ressort, position assise', reference: 'CS-25.562' },
+  { category: 'CERTIFICATION', parameter: 'A.O.G. (immobilisation)', value: '0 h', reference: 'Procédure MRO' },
+];
+---
+
+<section id="compliance" class="scroll-mt-24 relative py-24 md:py-32" aria-labelledby="compliance-title">
+  <div class="absolute inset-0 bg-grid-pattern bg-grid-64 pointer-events-none opacity-60" aria-hidden="true"></div>
+
+  <div class="section-container relative">
+    <header class="section-header">
+      <span class="section-badge">Dossier d'ingénierie</span>
+      <h2 id="compliance-title" class="section-title text-balance">
+        Spécifications Techniques <span class="text-electric-cyan">&amp;</span> EASA Form 1
+      </h2>
+      <p class="section-subtitle text-balance">
+        Chaque donnée ci-dessous est couverte par le dossier d'ingénierie EASA Part 21J : architecture
+        certifiée, chaîne de production sous-traitée, marges de masse et conformité aux exigences de
+        sécurité cabine CS-25.562 / FAR-25.562. Le dossier complet est remis sur demande.
+      </p>
+    </header>
+
+    <div class="glassmorphism-card mb-12 md:mb-16">
+      <div class="flex flex-col gap-6 md:flex-row md:items-center md:gap-8">
+        <div class="flex items-center gap-3 md:min-w-[240px]">
+          <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-aero-blue/15 border border-aero-blue/30 text-aero-blue" aria-hidden="true">
+            <ShieldCheck class="h-5 w-5" stroke-width="1.75" aria-hidden="true" focusable="false" />
+          </span>
+          <h3 class="text-caption font-semibold tracking-widest text-pure-white/80">Référentiels applicables</h3>
+        </div>
+
+        <ul class="flex flex-wrap gap-2.5 md:gap-3" role="list">
+          {certifications.map((cert) => (
+            <li class="badge-cert" role="listitem">{cert}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <div class="glassmorphism-lg rounded-xl overflow-hidden shadow-glass-lg">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[720px] border-collapse text-left">
+          <caption class="sr-only">
+            Spécifications techniques contractuelles LSEAT et références normatives associées
+          </caption>
+          <thead>
+            <tr class="border-b border-electric-cyan/20 bg-titanium-gray/40">
+              <th scope="col" class="px-5 py-4 text-caption font-semibold tracking-widest text-pure-white/80">Catégorie</th>
+              <th scope="col" class="px-5 py-4 text-caption font-semibold tracking-widest text-pure-white/80">Paramètre</th>
+              <th scope="col" class="px-5 py-4 text-caption font-semibold tracking-widest text-pure-white/80">Valeur</th>
+              <th scope="col" class="px-5 py-4 text-caption font-semibold tracking-widest text-pure-white/80">Référence normative</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-pure-white/10">
+            {specs.map((row) => {
+              const meta = categoryMeta[row.category];
+              const CategoryIcon = categoryIcons[meta.icon];
+              return (
+                <tr class="group transition-colors duration-200 hover:bg-electric-cyan/5">
+                  <th scope="row" class="px-5 py-4 align-top font-normal">
+                    <span class="inline-flex items-center gap-2.5 whitespace-nowrap">
+                      <span class:list={["inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-pure-white/10 bg-slate-dark/70 transition-colors duration-200", meta.accent, meta.hover]} aria-hidden="true">
+                        <CategoryIcon class="h-4 w-4" stroke-width="1.75" aria-hidden="true" focusable="false" />
+                      </span>
+                      <span class="text-caption font-semibold tracking-widest text-pure-white/70">{row.category}</span>
+                    </span>
+                  </th>
+                  <td class="px-5 py-4 align-top text-body-base text-pure-white/90">{row.parameter}</td>
+                  <td class="px-5 py-4 align-top text-body-base font-semibold text-electric-cyan">{row.value}</td>
+                  <td class="px-5 py-4 align-top">
+                    <span class="badge-tech whitespace-nowrap">{row.reference}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="mt-6 max-w-3xl text-body-sm text-pure-white/70 text-balance">
+      Valeurs contractuelles issues du dossier d'ingénierie LSEAT 2025 et du programme EASA Part 21J.
+      Document de référence remis sur demande (EASA Form 1).
+    </p>
+  </div>
+</section>

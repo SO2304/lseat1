@@ -1,0 +1,888 @@
+---
+/**
+ * Portail de contact B2B - LSEAT Aerospace
+ * Soumission AJAX vers Web3Forms (https://web3forms.com).
+ * Icones du template : @lucide/astro. Les icones de toast restent des chaine SVG
+ * en JS car elles sont injectees dans des noeuds DOM crees dynamiquement.
+ */
+import { Check, Mail, Info, CircleCheckBig, RotateCcw, LoaderCircle } from '@lucide/astro';
+
+const web3formsKey: string = import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '';
+const isDev: boolean = import.meta.env.DEV;
+
+const deliverables = [
+  {
+    title: 'EASA Form 1',
+    detail: 'Certificat de conformité, libéré sur demande après revue complète du dossier de certification.',
+  },
+  {
+    title: "Dossier d'ingénierie Part 21J",
+    detail: 'Définition de conception, plans, nomenclatures et instructions de maintenance préventive.',
+  },
+  {
+    title: 'Notes de certification dynamique 16G',
+    detail: 'Justificatif CS-25.562 / FAR-25.562, axes Y et Z, seats DMSO 9G / OY 4G.',
+  },
+  {
+    title: "Procédure d'installation MRO",
+    detail: "Gamme d'installation, outillage, temps d'intervention et contrôle post-installation.",
+  },
+  {
+    title: 'Devis flotte chiffré',
+    detail: 'Coût par siège, par appareil, avec planning de lot et hypothèses de volume.',
+  },
+];
+---
+
+<section id="contact" class="scroll-mt-24 relative overflow-hidden bg-slate-dark py-24 md:py-32">
+  <div class="absolute inset-0 bg-grid-pattern bg-grid-64 opacity-60" aria-hidden="true"></div>
+  <div class="absolute inset-0 bg-radial-glow" aria-hidden="true"></div>
+
+  <div class="section-container relative">
+    <div class="section-header">
+      <span class="section-badge">Contact B2B Ingénierie</span>
+      <h2 class="section-title text-balance">Portail de Contact B2B Ingénierie</h2>
+      <p class="section-subtitle text-balance">
+        Ligne directe vers l'équipe d'ingénierie LSEAT Aerospace. Chaque demande est traitée par un
+        ingénieur, pas par un formulaire automatique&nbsp;: réponse technique sous 24&nbsp;h ouvrées,
+        dossier complet sur demande explicite.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+      <!-- ============ Colonne gauche : ce que vous recevez ============ -->
+      <div class="space-y-6 lg:col-span-5">
+        <div class="glassmorphism-card">
+          <h3 class="font-display text-display-sm text-pure-white">Ce que vous recevez</h3>
+          <p class="mt-2 text-body-sm text-pure-white/70">
+            Éléments remis sur demande, selon le niveau de maturité de votre programme.
+          </p>
+
+          <ul class="mt-6 space-y-4" role="list">
+            {
+              deliverables.map((item) => (
+                <li class="flex gap-3">
+                  <span
+                    class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-electric-cyan/30 bg-electric-cyan/10 text-electric-cyan"
+                    aria-hidden="true"
+                  >
+                    <Check size={14} stroke-width="2.5" aria-hidden="true" focusable="false" />
+                  </span>
+                  <span>
+                    <span class="block text-body-base font-semibold text-pure-white">{item.title}</span>
+                    <span class="mt-0.5 block text-body-sm text-pure-white/70">{item.detail}</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div class="glassmorphism p-6 md:p-8">
+          <h3 class="font-display text-display-sm text-pure-white">Contact direct</h3>
+          <a
+            href="mailto:contact@lseat.eu"
+            class="mt-4 inline-flex items-center gap-2 text-body-lg font-semibold text-electric-cyan underline decoration-electric-cyan/40 underline-offset-4 transition-colors hover:decoration-electric-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-deep-navy"
+          >
+            <Mail size={20} stroke-width="2" aria-hidden="true" focusable="false" />
+            contact@lseat.eu
+          </a>
+
+          <p class="mt-4 text-body-sm text-pure-white/70 text-balance">
+            Pas de formulaire générique&nbsp;: vous parlez à l'équipe d'ingénierie.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="badge-cert">CS-25.562</span>
+            <span class="badge-cert">FAR-25.562</span>
+            <span class="badge-cert">Part 21J</span>
+            <span class="badge-tech">0 W</span>
+            <span class="badge-tech">&lt; 15 min / siège</span>
+          </div>
+        </div>
+      </div>
+      <!-- ============ Colonne droite : formulaire ============ -->
+      <div class="lg:col-span-7">
+        <div class="glassmorphism-card p-6 md:p-8">
+          {
+            isDev && !web3formsKey && (
+              <div
+                class="mb-6 flex items-start gap-3 rounded-lg border border-electric-cyan/30 bg-electric-cyan/10 p-4 text-body-sm text-pure-white"
+                role="alert"
+              >
+                <Info size={18} stroke-width="2" class="mt-0.5 shrink-0 text-electric-cyan" aria-hidden="true" focusable="false" />
+                <p>
+                  <span class="font-semibold text-electric-cyan">Mode développement.</span>{' '}
+                  <code class="font-mono text-pure-white/80">PUBLIC_WEB3FORMS_KEY</code> n'est pas
+                  définie&nbsp;: la soumission sera rejetée localement. Copiez{' '}
+                  <code class="font-mono text-pure-white/80">.env.example</code> vers{' '}
+                  <code class="font-mono text-pure-white/80">.env</code> et renseignez votre clé
+                  Web3Forms.
+                </p>
+              </div>
+            )
+          }
+
+          <!-- Panneau de succes (masque par defaut) -->
+          <div id="contact-success" class="hidden" hidden role="status" aria-live="polite">
+            <div class="flex items-start gap-4">
+              <span
+                class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-electric-cyan/30 bg-electric-cyan/10 text-electric-cyan"
+                aria-hidden="true"
+              >
+                <CircleCheckBig size={24} stroke-width="2" aria-hidden="true" focusable="false" />
+              </span>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-display text-display-sm text-pure-white">Demande transmise</h3>
+                <p class="mt-2 text-body-base text-pure-white/70">
+                  Réponse sous 24&nbsp;h ouvrées. Un ingénieur LSEAT Aerospace vous répondra
+                  directement, à l'adresse indiquée.
+                </p>
+
+                <dl
+                  id="contact-success-summary"
+                  class="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-titanium-gray/50 bg-slate-dark/60 p-4 text-body-sm sm:grid-cols-2"
+                >
+                </dl>
+
+                <button type="button" id="contact-reset" class="btn-secondary mt-6 w-full sm:w-auto">
+                  <RotateCcw size={18} stroke-width="2" aria-hidden="true" focusable="false" />
+                  Envoyer une autre demande
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulaire -->
+          <form
+            id="b2b-contact-form"
+            method="POST"
+            action="https://api.web3forms.com/submit"
+            novalidate
+            data-access-key={web3formsKey}
+            aria-label="Demande B2B à l'équipe d'ingénierie LSEAT Aerospace"
+            class="space-y-5"
+          >
+            <input type="hidden" name="access_key" id="contact-access-key" value={web3formsKey} />
+            <input type="hidden" name="from_name" value="LSEAT Aerospace - Portail B2B" />
+            <input type="hidden" name="subject" value="Nouvelle demande engineering B2B" />
+            <input type="hidden" name="replyto" id="contact-replyto" value="" />
+            <input type="hidden" name="utm_source" id="contact-utm-source" value="" />
+            <input type="hidden" name="utm_medium" id="contact-utm-medium" value="" />
+            <input type="hidden" name="utm_campaign" id="contact-utm-campaign" value="" />
+            <!-- Piege a robots : s'il est rempli, l'envoi est interrompu sans retour visible. -->
+            <div class="hidden" aria-hidden="true">
+              <label for="contact-botcheck">Ne pas remplir ce champ</label>
+              <input type="text" id="contact-botcheck" name="botcheck" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label class="label-field" for="contact-fullName">
+                  Nom complet <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="contact-fullName"
+                  name="fullName"
+                  class="input-field"
+                  required
+                  autocomplete="name"
+                  placeholder="Prénom NOM"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-fullName-error"
+                />
+                <p id="contact-fullName-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+
+              <div>
+                <label class="label-field" for="contact-role">
+                  Fonction <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="contact-role"
+                  name="role"
+                  class="input-field"
+                  required
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-role-error"
+                >
+                  <option value="">Sélectionnez votre fonction</option>
+                  <optgroup label="Ingénierie &amp; Technique">
+                    <option value="Chief Engineer">Chief Engineer</option>
+                    <option value="Ingénieur Cabine / Interior Systems">Ingénieur Cabine / Interior Systems</option>
+                    <option value="Ingénieur Structures">Ingénieur Structures</option>
+                    <option value="Ingénieur Certificateur">Ingénieur Certificateur</option>
+                    <option value="Responsable Maintenance / MRO">Responsable Maintenance / MRO</option>
+                  </optgroup>
+                  <optgroup label="Direction">
+                    <option value="VP Engineering">VP Engineering</option>
+                    <option value="Directeur de Flotte">Directeur de Flotte</option>
+                    <option value="Directeur Revenue / Ancillary">Directeur Revenue / Ancillary</option>
+                    <option value="Directeur Achats / Procurement">Directeur Achats / Procurement</option>
+                    <option value="Directeur Général">Directeur Général</option>
+                  </optgroup>
+                  <optgroup label="Auditeurs &amp; Partenaires">
+                    <option value="Auditeur de Certification (EASA/FAA)">Auditeur de Certification (EASA/FAA)</option>
+                    <option value="OEM / Équipementier">OEM / Équipementier</option>
+                    <option value="Autre">Autre</option>
+                  </optgroup>
+                </select>
+                <p id="contact-role-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label class="label-field" for="contact-company">
+                  Compagnie / MRO / OEM <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="contact-company"
+                  name="company"
+                  class="input-field"
+                  required
+                  autocomplete="organization"
+                  placeholder="Raison sociale"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-company-error"
+                />
+                <p id="contact-company-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+
+              <div>
+                <label class="label-field" for="contact-orgType">
+                  Type d'organisation <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="contact-orgType"
+                  name="orgType"
+                  class="input-field"
+                  required
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-orgType-error"
+                >
+                  <option value="">Sélectionnez votre type d'organisation</option>
+                  <option value="Compagnie aérienne">Compagnie aérienne</option>
+                  <option value="MRO / Atelier de maintenance">MRO / Atelier de maintenance</option>
+                  <option value="OEM / Équipementier">OEM / Équipementier</option>
+                  <option value="Autorité de certification">Autorité de certification</option>
+                  <option value="Autre">Autre</option>
+                </select>
+                <p id="contact-orgType-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label class="label-field" for="contact-email">
+                  E-mail professionnel <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="contact-email"
+                  name="email"
+                  class="input-field"
+                  required
+                  autocomplete="email"
+                  inputmode="email"
+                  placeholder="prenom.nom@compagnie.com"
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-email-hint contact-email-error"
+                />
+                <p id="contact-email-hint" class="mt-2 text-caption text-pure-white/50">
+                  Adresse compagnie / MRO / OEM requise.
+                </p>
+                <p id="contact-email-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+
+              <div>
+                <label class="label-field" for="contact-phone">
+                  Téléphone <span class="text-pure-white/50">(facultatif)</span>
+                </label>
+                <input
+                  type="tel"
+                  id="contact-phone"
+                  name="phone"
+                  class="input-field"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  placeholder="+33 1 00 00 00 00"
+                  aria-invalid="false"
+                  aria-describedby="contact-phone-error"
+                />
+                <p id="contact-phone-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label class="label-field" for="contact-fleetType">
+                  Type de flotte <span class="text-pure-white/50">(facultatif)</span>
+                </label>
+                <select
+                  id="contact-fleetType"
+                  name="fleetType"
+                  class="input-field"
+                  aria-invalid="false"
+                  aria-describedby="contact-fleetType-error"
+                >
+                  <option value="">Sélectionnez (facultatif)</option>
+                  <option value="Long-courrier">Long-courrier</option>
+                  <option value="Court-moyen-courrier">Court-moyen-courrier</option>
+                  <option value="Régional">Régional</option>
+                  <option value="Cargo / Fret">Cargo / Fret</option>
+                  <option value="Mixte">Mixte</option>
+                  <option value="Autre">Autre</option>
+                </select>
+                <p id="contact-fleetType-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+
+              <div>
+                <label class="label-field" for="contact-aircraftCount">
+                  Nombre d'avions concernés <span class="text-pure-white/50">(facultatif)</span>
+                </label>
+                <input
+                  type="number"
+                  id="contact-aircraftCount"
+                  name="aircraftCount"
+                  class="input-field"
+                  min="1"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="ex. 24"
+                  aria-invalid="false"
+                  aria-describedby="contact-aircraftCount-error"
+                />
+                <p id="contact-aircraftCount-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+              </div>
+            </div>
+
+            <div>
+              <label class="label-field" for="contact-message">
+                Message <span class="text-electric-cyan" aria-hidden="true">*</span>
+              </label>
+              <textarea
+                id="contact-message"
+                name="message"
+                rows="5"
+                class="input-field resize-y"
+                required
+                minlength="20"
+                placeholder="Précisez le type de conservatism recherché (14 g / 16 g), la configuration cabine, le mode d'installation (OEM ou rétrofit MRO) et le calendrier de déploiement souhaité."
+                aria-required="true"
+                aria-invalid="false"
+                aria-describedby="contact-message-note contact-message-error"
+              ></textarea>
+              <p id="contact-message-note" class="mt-2 text-body-sm text-pure-white/50">
+                Plans, dossiers Part 21J ou spécifications pourront être transmis en réponse à cet
+                e-mail. Aucune pièce jointe n'est acceptée par ce formulaire.
+              </p>
+              <p id="contact-message-error" class="mt-2 text-electric-cyan text-body-sm" role="alert" hidden></p>
+            </div>
+
+            <!-- Qualification B2B : adresses grand public -->
+            <div class="rounded-lg border border-titanium-gray/50 bg-slate-dark/60 p-4">
+              <label
+                for="contact-nonProfessional"
+                class="flex cursor-pointer items-start gap-3 text-body-sm text-pure-white/90"
+              >
+                <input
+                  type="checkbox"
+                  id="contact-nonProfessional"
+                  name="nonProfessional"
+                  value="Oui"
+                  class="mt-0.5 h-5 w-5 shrink-0 rounded border-titanium-gray/50 bg-slate-dark text-electric-cyan focus:ring-2 focus:ring-electric-cyan/40 focus:ring-offset-0"
+                />
+                <span>
+                  J'utilise une adresse non professionnelle
+                  <span class="mt-0.5 block text-pure-white/60">
+                    Cochez cette case pour désactiver le contrôle d'adresse professionnelle.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <!-- RGPD -->
+            <fieldset class="space-y-3">
+              <legend class="label-field mb-0">Confidentialité &amp; RGPD</legend>
+
+              <label
+                for="contact-gdpr"
+                class="flex cursor-pointer items-start gap-3 text-body-sm text-pure-white/90"
+              >
+                <input
+                  type="checkbox"
+                  id="contact-gdpr"
+                  name="gdpr"
+                  value="Oui"
+                  required
+                  aria-required="true"
+                  aria-invalid="false"
+                  aria-describedby="contact-gdpr-error"
+                  class="mt-0.5 h-5 w-5 shrink-0 rounded border-titanium-gray/50 bg-slate-dark text-electric-cyan focus:ring-2 focus:ring-electric-cyan/40 focus:ring-offset-0"
+                />
+                <span>
+                  J'accepte que LSEAT Aerospace utilise ces informations pour répondre à ma demande.
+                  <span class="text-electric-cyan" aria-hidden="true">*</span>
+                </span>
+              </label>
+              <p id="contact-gdpr-error" class="text-electric-cyan text-body-sm" role="alert" hidden></p>
+
+              <label
+                for="contact-newsletter"
+                class="flex cursor-pointer items-start gap-3 text-body-sm text-pure-white/90"
+              >
+                <input
+                  type="checkbox"
+                  id="contact-newsletter"
+                  name="newsletter"
+                  value="Oui"
+                  class="mt-0.5 h-5 w-5 shrink-0 rounded border-titanium-gray/50 bg-slate-dark text-electric-cyan focus:ring-2 focus:ring-electric-cyan/40 focus:ring-offset-0"
+                />
+                <span>
+                  Je souhaite recevoir la lettre technique LSEAT (révisions de dossier, notes de
+                  certification, évolutions réglementaires EASA / FAA).
+                </span>
+              </label>
+            </fieldset>
+
+            <button type="submit" id="contact-submit" class="btn-primary w-full">
+              <span id="contact-submit-spinner" class="hidden" aria-hidden="true">
+                <LoaderCircle size={20} stroke-width="2" class="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" focusable="false" />
+              </span>
+              <span id="contact-submit-label">Envoyer la demande à l'ingénierie</span>
+            </button>
+
+            <p class="text-center text-caption text-pure-white/50">
+              * Champs obligatoires &mdash; Réponse sous 24 h ouvrées
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="contact-toast-region" aria-live="polite" aria-atomic="false"></div>
+<script>
+  const ENDPOINT = 'https://api.web3forms.com/submit';
+  const AUTO_DISMISS_MS = 8000;
+
+  const FREE_MAIL_DOMAINS = [
+    'gmail.com',
+    'googlemail.com',
+    'yahoo.com',
+    'yahoo.fr',
+    'ymail.com',
+    'hotmail.com',
+    'hotmail.fr',
+    'outlook.com',
+    'outlook.fr',
+    'live.com',
+    'live.fr',
+    'msn.com',
+    'aol.com',
+    'orange.fr',
+    'wanadoo.fr',
+    'free.fr',
+    'laposte.net',
+    'sfr.fr',
+    'protonmail.com',
+    'proton.me',
+    'icloud.com',
+    'gmx.com',
+    'mail.com',
+    'web.de',
+  ];
+
+  const ICONS: Record<string, string> = {
+    'toast-success':
+      '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-electric-cyan"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    'toast-error':
+      '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-red-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    close:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  };
+
+  const prefersReducedMotion = (): boolean =>
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const isFreeMail = (email: string): boolean => {
+    const at = email.lastIndexOf('@');
+    if (at === -1) return false;
+    const domain = email.slice(at + 1).trim().toLowerCase().replace(/\.$/, '');
+    return FREE_MAIL_DOMAINS.some((d) => domain === d || domain.endsWith('.' + d));
+  };
+
+  const errorIdFor = (field: Element): string => '#contact-' + (field.getAttribute('name') || field.id) + '-error';
+
+  const errorFor = (form: HTMLFormElement, field: Element): HTMLElement | null =>
+    form.querySelector<HTMLElement>(errorIdFor(field));
+
+  function clearFieldError(field: Element, form: HTMLFormElement): void {
+    const errorEl = errorFor(form, field);
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.hidden = true;
+    }
+    field.setAttribute('aria-invalid', 'false');
+  }
+
+  function setFieldError(field: Element, form: HTMLFormElement, message: string): void {
+    const errorEl = errorFor(form, field);
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+    field.setAttribute('aria-invalid', 'true');
+  }
+
+  function messageFor(field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+    const type = field instanceof HTMLInputElement ? field.type : '';
+
+    if (field.validity.valueMissing) {
+      return type === 'checkbox'
+        ? 'Vous devez accepter cette condition pour continuer.'
+        : 'Ce champ est obligatoire.';
+    }
+    if (field.validity.typeMismatch) {
+      return type === 'tel' ? 'Numéro de téléphone invalide.' : "Format d'adresse e-mail invalide.";
+    }
+    if (field.validity.tooShort) {
+      return 'Merci de détailler votre besoin en 20 caractères minimum.';
+    }
+    if (field.validity.rangeUnderflow || field.validity.rangeOverflow) {
+      return "Saisissez un nombre d'avions supérieur ou égal à 1.";
+    }
+    if (field.validity.stepMismatch) {
+      return 'Saisissez un nombre entier.';
+    }
+    return 'Valeur invalide : vérifiez le champ « ' + (field.id || field.name).replace(/^contact-/, '') + ' ».';
+  }
+
+  function validateField(
+    field: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+    form: HTMLFormElement
+  ): boolean {
+    const skipFreeMail = form.querySelector<HTMLInputElement>('#contact-nonProfessional');
+
+    if (field.id === 'contact-email' && !(skipFreeMail && skipFreeMail.checked)) {
+      const value = field.value.trim();
+      if (value !== '' && !field.validity.typeMismatch && isFreeMail(value)) {
+        setFieldError(
+          field,
+          form,
+          "Une adresse professionnelle est requise pour instruire une demande B2B. " +
+            "Cochez « J'utilise une adresse non professionnelle » pour envoyer malgré tout."
+        );
+        return false;
+      }
+    }
+
+    if (!field.checkValidity()) {
+      setFieldError(field, form, messageFor(field));
+      return false;
+    }
+
+    clearFieldError(field, form);
+    return true;
+  }
+
+  function buildSummary(form: HTMLFormElement): Array<[string, string]> {
+    const read = (selector: string): string => {
+      const el = form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(selector);
+      return el ? String(el.value).trim() : '';
+    };
+
+    const rows: Array<[string, string]> = [
+      ['Nom', read('#contact-fullName')],
+      ['Fonction', read('#contact-role')],
+      ['Organisation', read('#contact-company')],
+      ['Type', read('#contact-orgType')],
+      ['E-mail', read('#contact-email')],
+    ];
+
+    const optional: Array<[string, string]> = [
+      ['Téléphone', read('#contact-phone')],
+      ['Flotte', read('#contact-fleetType')],
+      ['Avions', read('#contact-aircraftCount')],
+    ];
+    optional.forEach((row) => {
+      if (row[1] !== '') rows.push(row);
+    });
+
+    return rows;
+  }
+
+  function renderSummary(target: HTMLElement, rows: Array<[string, string]>): void {
+    target.textContent = '';
+    rows.forEach((row) => {
+      const cell = document.createElement('div');
+      cell.className = 'min-w-0';
+      const dt = document.createElement('dt');
+      dt.className = 'text-caption text-pure-white/50';
+      dt.textContent = row[0];
+      const dd = document.createElement('dd');
+      dd.className = 'mt-0.5 break-words font-medium text-pure-white';
+      dd.textContent = row[1];
+      cell.appendChild(dt);
+      cell.appendChild(dd);
+      target.appendChild(cell);
+    });
+  }
+
+  function showToast(
+    variant: 'toast-success' | 'toast-error' | 'toast-loading',
+    title: string,
+    detail: string
+  ): HTMLElement {
+    const region = document.getElementById('contact-toast-region');
+    const toast = document.createElement('div');
+
+    toast.className = 'toast ' + variant;
+    if (prefersReducedMotion()) toast.classList.remove('animate-slide-up');
+    toast.setAttribute('role', variant === 'toast-error' ? 'alert' : 'status');
+    toast.setAttribute('aria-live', variant === 'toast-error' ? 'assertive' : 'polite');
+
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'mt-0.5 shrink-0';
+    iconWrap.innerHTML = ICONS[variant];
+
+    const body = document.createElement('div');
+    body.className = 'min-w-0 flex-1';
+    const titleEl = document.createElement('p');
+    titleEl.className = 'text-body-base font-semibold text-pure-white';
+    titleEl.textContent = title;
+    const detailEl = document.createElement('p');
+    detailEl.className = 'mt-1 text-body-sm text-pure-white/70';
+    detailEl.textContent = detail;
+    body.appendChild(titleEl);
+    body.appendChild(detailEl);
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className =
+      'ml-2 shrink-0 rounded p-1 text-pure-white/50 transition-colors hover:text-pure-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-cyan';
+    close.setAttribute('aria-label', 'Fermer la notification');
+    close.innerHTML = ICONS.close;
+    close.addEventListener('click', () => toast.remove());
+
+    toast.appendChild(iconWrap);
+    toast.appendChild(body);
+    toast.appendChild(close);
+
+    if (region) {
+      region.appendChild(toast);
+    } else {
+      document.body.appendChild(toast);
+    }
+
+    return toast;
+  }
+
+  function initContactForm(): void {
+    const form = document.getElementById('b2b-contact-form') as HTMLFormElement | null;
+    if (!form || form.dataset.lseatReady === 'true') return;
+    form.dataset.lseatReady = 'true';
+
+    const submitBtn = document.getElementById('contact-submit') as HTMLButtonElement | null;
+    const submitLabel = document.getElementById('contact-submit-label');
+    const submitSpinner = document.getElementById('contact-submit-spinner');
+    const successPanel = document.getElementById('contact-success');
+    const summaryList = document.getElementById('contact-success-summary');
+    const resetBtn = document.getElementById('contact-reset');
+    const emailField = document.getElementById('contact-email') as HTMLInputElement | null;
+    const replyToField = document.getElementById('contact-replyto') as HTMLInputElement | null;
+    const botField = document.getElementById('contact-botcheck') as HTMLInputElement | null;
+    const nonProfessional = document.getElementById('contact-nonProfessional') as HTMLInputElement | null;
+    const gdprField = document.getElementById('contact-gdpr') as HTMLInputElement | null;
+    const newsletterField = document.getElementById('contact-newsletter') as HTMLInputElement | null;
+
+    const accessKey = (form.getAttribute('data-access-key') || '').trim();
+    const defaultLabel = submitLabel ? submitLabel.textContent || '' : '';
+
+    /* replyto synchronise sur le champ e-mail */
+    const syncReplyTo = (): void => {
+      if (emailField && replyToField) replyToField.value = emailField.value.trim();
+    };
+    if (emailField) {
+      emailField.addEventListener('input', syncReplyTo);
+      syncReplyTo();
+    }
+
+    /* UTM */
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const utmFields: Array<[string, string]> = [
+        ['utm_source', '#contact-utm-source'],
+        ['utm_medium', '#contact-utm-medium'],
+        ['utm_campaign', '#contact-utm-campaign'],
+      ];
+      utmFields.forEach((entry) => {
+        const target = form.querySelector<HTMLInputElement>(entry[1]);
+        if (target) target.value = params.get(entry[0]) || '';
+      });
+    } catch {
+      /* URLSearchParams indisponible : les champs UTM restent vides. */
+    }
+
+    const fields = Array.from(
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        'input:not([type="hidden"]), select, textarea'
+      )
+    );
+
+    fields.forEach((field) => {
+      const revalidate = (): void => {
+        if (field.closest('.hidden[aria-hidden="true"]')) return;
+        validateField(field, form);
+      };
+      field.addEventListener('blur', revalidate);
+      field.addEventListener('change', revalidate);
+    });
+
+    if (emailField && nonProfessional) {
+      nonProfessional.addEventListener('change', () => {
+        if (emailField.value.trim() !== '') validateField(emailField, form);
+      });
+    }
+
+    const setLoading = (loading: boolean): void => {
+      if (submitBtn) {
+        submitBtn.disabled = loading;
+        submitBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
+      }
+      if (submitLabel) submitLabel.textContent = loading ? 'Transmission en cours…' : defaultLabel;
+      if (submitSpinner) submitSpinner.classList.toggle('hidden', !loading);
+    };
+
+    const showSuccess = (rows: Array<[string, string]>): void => {
+      if (summaryList) renderSummary(summaryList, rows);
+      form.hidden = true;
+      form.setAttribute('aria-hidden', 'true');
+      if (successPanel) {
+        successPanel.hidden = false;
+        successPanel.classList.remove('hidden');
+        successPanel.scrollIntoView({
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'center',
+        });
+      }
+    };
+
+    const restoreForm = (): void => {
+      form.reset();
+      syncReplyTo();
+      fields.forEach((field) => clearFieldError(field, form));
+      form.hidden = false;
+      form.removeAttribute('aria-hidden');
+      if (successPanel) {
+        successPanel.hidden = true;
+        successPanel.classList.add('hidden');
+      }
+      if (submitBtn) submitBtn.focus();
+    };
+
+    if (resetBtn) resetBtn.addEventListener('click', restoreForm);
+
+    form.addEventListener('submit', async (event: Event) => {
+      event.preventDefault();
+
+      /* Piege a robots : interruption silencieuse, aucune requete emise. */
+      if (botField && botField.value.trim() !== '') {
+        form.reset();
+        return;
+      }
+
+      const invalid = fields.filter((field) => !validateField(field, form));
+      if (invalid.length > 0) {
+        const first = invalid[0];
+        first.focus();
+        first.scrollIntoView({
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'center',
+        });
+        return;
+      }
+
+      if (accessKey === '') {
+        showToast(
+          'toast-error',
+          'Configuration manquante',
+          "La clé Web3Forms n'est pas configurée sur cet environnement. Écrivez directement à contact@lseat.eu."
+        );
+        return;
+      }
+
+      setLoading(true);
+
+      const formData = new FormData(form);
+      const payload: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        payload[key] = String(value);
+      });
+
+      payload.access_key = accessKey;
+      payload.replyto = (emailField ? emailField.value : '').trim();
+      payload.gdpr = gdprField && gdprField.checked ? 'Oui' : 'Non';
+      payload.newsletter = newsletterField && newsletterField.checked ? 'Oui' : 'Non';
+      payload.nonProfessional = nonProfessional && nonProfessional.checked ? 'Oui' : 'Non';
+      payload.page = window.location.href;
+      payload.botcheck = '';
+
+      const summary = buildSummary(form);
+
+      try {
+        const response = await fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+          redirect: 'follow',
+        });
+
+        let data: { success?: boolean; message?: string } = {};
+        try {
+          data = (await response.json()) as { success?: boolean; message?: string };
+        } catch {
+          data = {};
+        }
+
+        if (!response.ok || data.success !== true) {
+          throw new Error(data.message || 'HTTP ' + response.status);
+        }
+
+        showSuccess(summary);
+
+        const toast = showToast(
+          'toast-success',
+          'Demande transmise. Réponse sous 24 h ouvrées.',
+          'Un ingénieur LSEAT Aerospace vous recontacte à l’adresse indiquée. En cas d’urgence opérationnelle, écrivez à contact@lseat.eu.'
+        );
+        window.setTimeout(() => toast.remove(), AUTO_DISMISS_MS);
+      } catch (error) {
+        console.error('[LSEAT] Echec de soumission Web3Forms :', error);
+        showToast(
+          'toast-error',
+          'Échec de l’envoi. Réessayez ou écrivez à contact@lseat.eu.',
+          "Aucun ingénieur n'a été notifié. Vos données n'ont pas été transmises : copiez votre message et envoyez-le par e-mail."
+        );
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContactForm, { once: true });
+  } else {
+    initContactForm();
+  }
+  document.addEventListener('astro:page-load', initContactForm);
+</script>

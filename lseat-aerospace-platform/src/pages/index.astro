@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import Kinematics from '../components/Kinematics.astro';
+import SpecsTable from '../components/SpecsTable.astro';
+import RoiCalculator from '../components/RoiCalculator.astro';
+import ContactForm from '../components/ContactForm.astro';
+
+const title = 'LSEAT Aerospace | Kit de conversion Économie 16G - EASA Part 21J';
+const description =
+  "Kit de conversion ergonomique passager à mode sommeil 40°, < 1 650 g pour 3 sièges, 0 W, retrofit MRO < 15 min. Certification EASA CS-25 / FAR-25, dossier Part 21J et EASA Form 1.";
+---
+
+<BaseLayout title={title} description={description}>
+  <Hero />
+  <Kinematics />
+  <SpecsTable />
+  <RoiCalculator />
+  <ContactForm />
+</BaseLayout>

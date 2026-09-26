@@ -1,0 +1,770 @@
+---
+/**
+ * RoiCalculator.astro
+ * Modele financier fleet - calculateur de ROI 100% vanilla JS (aucune dependance, aucun CDN).
+ * Les hypotheses par defaut et la geometrie du graphique sont calculees en frontmatter
+ * (rendu SSR correct sans JavaScript), puis recalculees cote client a chaque entree.
+ * Icones : @lucide/astro.
+ */
+import { RotateCcw, ArrowRight } from '@lucide/astro';
+
+interface RoiInput {
+  id: string;
+  label: string;
+  hint: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  unit: 'int' | 'eur' | 'pct' | 'coef';
+  ariaOne: string;
+  ariaMany: string;
+}
+
+interface RoiModel {
+  seatsRetrofit: number;
+  annualPax: number;
+  annualRevenue: number;
+  revenuePerPax: number;
+  revenue5: number;
+  capex: number;
+  monthlyRevenue: number;
+  paybackMonths: number;
+  netYear1: number;
+  npv5: number;
+  roiPct: number;
+  maintenance: number;
+}
+
+type ModelValues = Record<string, number>;
+
+const DISCOUNT_RATE = 1.1;
+const YEARS = 5;
+const MAINTENANCE_RATE = 0.005;
+
+const inputs: RoiInput[] = [
+  { id: 'aircraft', label: "Nombre d'avions dans la flotte", hint: 'Flotte retrolfitée, cabines en service', min: 1, max: 100, step: 1, value: 12, unit: 'int', ariaOne: 'avion', ariaMany: 'avions' },
+  { id: 'seats', label: 'Sièges Économie retrofités par avion', hint: 'Postes ex exclus (classe affaires, couchettes)', min: 20, max: 300, step: 1, value: 180, unit: 'int', ariaOne: 'siège', ariaMany: 'sièges' },
+  { id: 'fare', label: "Tarif de l'option sommeil (surdébit passager)", hint: 'Revenu unitaire HT par passager et par vol', min: 10, max: 100, step: 1, value: 45, unit: 'eur', ariaOne: 'euro', ariaMany: 'euros' },
+  { id: 'occupancy', label: "Taux d'occupation moyen", hint: 'Load factor annuel retenu par la compagnie', min: 50, max: 100, step: 1, value: 82, unit: 'pct', ariaOne: 'pour cent', ariaMany: 'pour cent' },
+  { id: 'seasonality', label: 'Facteur de saisonnalité', hint: '1,00 = année pleine exploitation', min: 0.8, max: 1.2, step: 0.05, value: 1, unit: 'coef', ariaOne: 'coefficient', ariaMany: 'coefficient' },
+  { id: 'unitCost', label: 'Coût du kit installé (CAPEX unitaire)', hint: 'Hypothèse utilisateur, hors pose et logistique', min: 1500, max: 6000, step: 50, value: 3200, unit: 'eur', ariaOne: 'euro', ariaMany: 'euros' },
+];
+
+const outputMeta = [
+  { id: 'annual-revenue', label: 'Revenu ancillaire annuel', kind: 'currency', emphasis: true, hint: 'Option sommeil, année 1' },
+  { id: 'payback-months', label: 'Amortissement du CAPEX', kind: 'months', emphasis: true, hint: 'CAPEX / revenu mensuel' },
+  { id: 'roi-pct', label: 'ROI net 5 ans', kind: 'percent', emphasis: true, hint: 'VAN 5 ans / CAPEX - 1' },
+  { id: 'capex-total', label: 'CAPEX total', kind: 'currency', emphasis: false, hint: 'Investissement initial total' },
+  { id: 'revenue-pax', label: 'Revenu passager par an', kind: 'currency', emphasis: false, hint: 'Base passagers servis' },
+  { id: 'revenue-5y', label: 'Revenu cumulé 5 ans', kind: 'currency', emphasis: false, hint: 'Brut, hors remise en service' },
+];
+
+function compute(v: ModelValues): RoiModel {
+  const seatsRetrofit = v.aircraft * v.seats;
+  const annualPax = seatsRetrofit * (v.occupancy / 100) * 365 * v.seasonality;
+  const annualRevenue = annualPax * v.fare;
+  const capex = seatsRetrofit * v.unitCost;
+  const monthlyRevenue = annualRevenue / 12;
+  const paybackMonths = monthlyRevenue > 0 ? capex / monthlyRevenue : Number.POSITIVE_INFINITY;
+  const netYear1 = annualRevenue - capex;
+  const maintenance = capex * MAINTENANCE_RATE;
+  let npv5 = 0;
+  for (let y = 1; y <= YEARS; y += 1) {
+    npv5 += (annualRevenue - maintenance) / Math.pow(DISCOUNT_RATE, y);
+  }
+  const roiPct = capex > 0 ? (npv5 / capex - 1) * 100 : 0;
+  return {
+    seatsRetrofit,
+    annualPax,
+    annualRevenue,
+    revenuePerPax: annualPax > 0 ? annualRevenue / annualPax : 0,
+    revenue5: annualRevenue * YEARS,
+    capex,
+    monthlyRevenue,
+    paybackMonths,
+    netYear1,
+    npv5,
+    roiPct,
+    maintenance,
+  };
+}
+
+const defaults = inputs.reduce<ModelValues>((acc, i) => {
+  acc[i.id] = i.value;
+  return acc;
+}, {});
+
+const initial = compute(defaults);
+
+// Geometrie du graphique (partagee avec le script client).
+const CH = { w: 720, h: 300, x0: 70, x1: 704, baseline: 236, plotH: 168 };
+const groupW = (CH.x1 - CH.x0) / YEARS;
+const barW = 32;
+const barGap = 12;
+const innerW = barW * 2 + barGap;
+const scaleStyle = (ratio: number) => 'transform: scaleY(' + ratio + ');';
+
+const initialCumRevenue = Array.from({ length: YEARS }, (_, i) => initial.annualRevenue * (i + 1));
+const initialCumCapex = Array.from({ length: YEARS }, () => initial.capex);
+const initialMax = Math.max(initial.annualRevenue * YEARS, initial.capex, 1) * 1.12;
+
+const eurFmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const decFmt = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const intFmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+
+const fmtInput = (value: number, unit: RoiInput['unit']): string => {
+  if (unit === 'eur') return eurFmt.format(value);
+  if (unit === 'pct') return `${intFmt.format(value)} %`;
+  if (unit === 'coef') return `${decFmt.format(value)} ×`;
+  return intFmt.format(value);
+};
+
+const initialAria = inputs
+  .map((i) => `${i.label} : ${fmtInput(defaults[i.id], i.unit).replace(/\u00a0/g, ' ')}`)
+  .join('. ');
+---
+
+<section id="roi" class="scroll-mt-24 relative py-24 md:py-32" aria-labelledby="roi-title">
+  <div class="absolute inset-0 bg-radial-glow pointer-events-none" aria-hidden="true"></div>
+
+  <div class="section-container relative">
+    <header class="section-header">
+      <span class="section-badge">Modèle financier</span>
+      <h2 id="roi-title" class="section-title text-balance">
+        Calculateur Interactif de <span class="text-electric-cyan">ROI Flotte</span>
+      </h2>
+      <p class="section-subtitle text-balance">
+        Modèle destiné aux directions Revenue, Cabine et Procurement. Ajustez votre flotte, votre
+        parc de sièges Économie retrofités et votre politique tarifaire : l'amortissement du CAPEX,
+        la VAN à 5 ans et le ROI net sont recalculés en temps réel. Toutes les valeurs affichées
+        découlent exclusivement des hypothèses que vous saisissez.
+      </p>
+    </header>
+
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+      <!-- Hypothèses -->
+      <div class="lg:col-span-5">
+        <div class="glassmorphism-card h-full">
+          <div class="mb-8 flex items-center justify-between gap-4">
+            <h3 class="text-display-sm font-semibold text-pure-white">Hypothèses de flotte</h3>
+            <button type="button" id="roi-reset" class="btn-ghost">
+              <RotateCcw class="h-4 w-4" stroke-width="1.75" aria-hidden="true" focusable="false" />
+              Réinitialiser
+            </button>
+          </div>
+
+          <div class="space-y-8">
+            {
+              inputs.map((inp) => (
+                <div>
+                  <div class="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <label for={`roi-${inp.id}`} class="label-field mb-0 text-body-sm font-medium text-pure-white/90">
+                      {inp.label}
+                    </label>
+                    <output
+                      for={`roi-${inp.id}`}
+                      id={`roi-readout-${inp.id}`}
+                      aria-live="off"
+                      class="font-mono text-body-base font-semibold text-electric-cyan tabular-nums"
+                    >
+                      {fmtInput(inp.value, inp.unit)}
+                    </output>
+                  </div>
+
+                  <input
+                    type="range"
+                    class="roi-range"
+                    id={`roi-${inp.id}`}
+                    name={inp.id}
+                    min={inp.min}
+                    max={inp.max}
+                    step={inp.step}
+                    value={inp.value}
+                    data-unit={inp.unit}
+                    data-aria-one={inp.ariaOne}
+                    data-aria-many={inp.ariaMany}
+                    aria-describedby={`roi-hint-${inp.id}`}
+                    aria-valuetext={fmtInput(inp.value, inp.unit).replace(/\u00a0/g, ' ')}
+                  />
+                  <p id={`roi-hint-${inp.id}`} class="mt-2.5 text-caption text-pure-white/50">
+                    {inp.hint}
+                  </p>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Résultats -->
+      <div class="lg:col-span-7">
+        <div class="flex h-full flex-col gap-6">
+          <div
+            id="roi-status"
+            class="rounded-lg border border-pure-white/10 bg-slate-dark/60 px-5 py-4"
+            data-state="pending"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="text-caption font-semibold tracking-widest text-pure-white/60">Amortissement du CAPEX</p>
+                <p id="roi-payback-note" class="mt-1 text-body-sm text-pure-white/70">Objectif contractuel : moins de 3 mois</p>
+              </div>
+              <span
+                id="roi-payback-badge"
+                class="inline-flex items-center gap-2 rounded-full border border-pure-white/20 bg-pure-white/5 px-4 py-2 text-body-sm font-semibold text-pure-white/80"
+              >
+                <span id="roi-payback-dot" class="h-2 w-2 rounded-full bg-pure-white/40" aria-hidden="true"></span>
+                <span id="roi-payback-badge-text">objectif &lt; 3 mois</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {
+              outputMeta.map((out) => (
+                <div class:list={["glassmorphism rounded-lg p-5", out.emphasis ? 'border-electric-cyan/25' : '']}>
+                  <p class="text-caption font-semibold tracking-widest text-pure-white/60">{out.label}</p>
+                  <p
+                    id={`roi-out-${out.id}`}
+                    data-kind={out.kind}
+                    class:list={[
+                      'mt-2 font-mono text-display-sm font-bold tabular-nums',
+                      out.emphasis ? 'text-electric-cyan' : 'text-pure-white',
+                    ]}
+                  >
+                    —
+                  </p>
+                  <p class="mt-1.5 text-caption text-pure-white/45">{out.hint}</p>
+                </div>
+              ))
+            }
+          </div>
+
+          <!-- Graphique -->
+          <div class="glassmorphism-lg rounded-xl p-5 md:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 class="text-body-lg font-semibold text-pure-white">Revenu cumulé vs CAPEX</h3>
+              <ul class="flex flex-wrap items-center gap-4" role="list">
+                <li class="flex items-center gap-2 text-caption text-pure-white/70" role="listitem">
+                  <span class="h-2.5 w-2.5 rounded-sm bg-electric-cyan" aria-hidden="true"></span> Revenu cumulé
+                </li>
+                <li class="flex items-center gap-2 text-caption text-pure-white/70" role="listitem">
+                  <span class="h-2.5 w-2.5 rounded-sm border border-slate-400/60 bg-titanium-gray" aria-hidden="true"></span> CAPEX cumulé
+                </li>
+              </ul>
+            </div>
+
+            <svg
+              id="roi-chart"
+              viewBox={`0 0 ${CH.w} ${CH.h}`}
+              class="h-auto w-full"
+              role="img"
+              aria-label={`Graphique comparatif sur 5 ans : revenu cumulé de ${eurFmt.format(initial.revenue5)} contre un CAPEX cumulé de ${eurFmt.format(initial.capex)}.`}
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <g class="roi-grid" aria-hidden="true">
+                {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+                  const y = CH.baseline - CH.plotH * f;
+                  return (
+                    <>
+                      <line
+                        x1={CH.x0}
+                        x2={CH.x1}
+                        y1={y}
+                        y2={y}
+                        stroke="rgba(148,163,184,0.18)"
+                        stroke-width="1"
+                        stroke-dasharray={f === 0 ? '0' : '3 5'}
+                      />
+                      <text
+                        id={`roi-axis-${f}`}
+                        x={CH.x0 - 10}
+                        y={y + 4}
+                        text-anchor="end"
+                        class="roi-axis-label"
+                      >
+                        {eurFmt.format(initialMax * f)}
+                      </text>
+                    </>
+                  );
+                })}
+              </g>
+
+              {
+                Array.from({ length: YEARS }, (_, i) => {
+                  const gx = CH.x0 + i * groupW;
+                  const startX = gx + (groupW - innerW) / 2;
+                  const revX = startX;
+                  const capexX = startX + barW + barGap;
+                  return (
+                    <g>
+                      <rect
+                        id={`roi-bar-rev-${i + 1}`}
+                        class="roi-bar roi-bar-revenue"
+                        x={revX}
+                        y={CH.baseline - CH.plotH}
+                        width={barW}
+                        height={CH.plotH}
+                        vector-effect="non-scaling-stroke"
+                        style={scaleStyle(initialCumRevenue[i] / initialMax)}
+                      />
+                      <rect
+                        id={`roi-bar-capex-${i + 1}`}
+                        class="roi-bar roi-bar-capex"
+                        x={capexX}
+                        y={CH.baseline - CH.plotH}
+                        width={barW}
+                        height={CH.plotH}
+                        vector-effect="non-scaling-stroke"
+                        style={scaleStyle(initialCumCapex[i] / initialMax)}
+                      />
+                      <text x={gx + groupW / 2} y={CH.baseline + 22} text-anchor="middle" class="roi-axis-label">
+                        {`An ${i + 1}`}
+                      </text>
+                    </g>
+                  );
+                })
+              }
+            </svg>
+
+            <p id="roi-chart-note" class="mt-4 text-body-sm text-pure-white/70">
+              {`Cumul 5 ans : ${eurFmt.format(initial.revenue5)} de revenus contre ${eurFmt.format(initial.capex)} de CAPEX — marge nette ${eurFmt.format(initial.revenue5 - initial.capex)}.`}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="sr-only" role="status" aria-live="polite" id="roi-live">{initialAria}</p>
+
+    <div class="mt-12 glassmorphism rounded-xl p-6 md:p-8">
+      <p class="text-body-sm text-pure-white/70 text-balance">
+        <span class="font-semibold text-pure-white">Avertissement.</span> Simulation indicative basée sur
+        les hypothèses saisies. Ne remplace pas une offre commerciale ni un dossier Part 21J. Le coût
+        du kit installé (CAPEX unitaire) est une hypothèse fournie par vous : il ne constitue ni un
+        prix LSEAT, ni un engagement contractuel, et exclut la pose, la logistique, la formation
+        MRO et les taxes. Les revenus sont bruts, hors remise en service, et n'intègrent aucune
+        écriture de dépendance au trafic.
+      </p>
+    </div>
+
+    <div class="mt-10 flex flex-col items-center gap-4 text-center">
+      <a href="#contact" class="btn-primary">
+        Demander une offre flotte chiffrée
+        <ArrowRight class="h-5 w-5" stroke-width="1.75" aria-hidden="true" focusable="false" />
+      </a>
+      <p class="max-w-xl text-caption text-pure-white/50 text-balance">
+        Réponse chiffrée sous 5 jours ouvrés, adossée au dossier d'ingénierie EASA Part 21J.
+      </p>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="roi-config" set:html={JSON.stringify(inputs)}></script>
+
+<style is:global>
+  .roi-range {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      #0284c7 0%,
+      #00d2fe var(--roi-fill, 50%),
+      rgba(30, 41, 59, 0.95) var(--roi-fill, 50%),
+      rgba(30, 41, 59, 0.95) 100%
+    );
+    cursor: pointer;
+    outline: none;
+  }
+
+  .roi-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #00d2fe;
+    border: 3px solid #0f172a;
+    box-shadow: 0 0 0 1px rgba(0, 210, 254, 0.65), 0 0 14px -2px rgba(0, 210, 254, 0.65);
+    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 180ms ease-out;
+  }
+
+  .roi-range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #00d2fe;
+    border: 3px solid #0f172a;
+    box-shadow: 0 0 0 1px rgba(0, 210, 254, 0.65), 0 0 14px -2px rgba(0, 210, 254, 0.65);
+    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 180ms ease-out;
+  }
+
+  .roi-range::-moz-range-track {
+    background: transparent;
+    border: none;
+  }
+
+  .roi-range:hover::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+
+  .roi-range:hover::-moz-range-thumb {
+    transform: scale(1.12);
+  }
+
+  .roi-range:active::-webkit-slider-thumb,
+  .roi-range.is-active::-webkit-slider-thumb {
+    transform: scale(1.22);
+    box-shadow: 0 0 0 1px rgba(0, 210, 254, 1), 0 0 24px 0 rgba(0, 210, 254, 0.9);
+  }
+
+  .roi-range:active::-moz-range-thumb,
+  .roi-range.is-active::-moz-range-thumb {
+    transform: scale(1.22);
+    box-shadow: 0 0 0 1px rgba(0, 210, 254, 1), 0 0 24px 0 rgba(0, 210, 254, 0.9);
+  }
+
+  .roi-range:focus-visible {
+    outline: none;
+  }
+
+  .roi-range:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px rgba(0, 210, 254, 0.35), 0 0 22px -2px rgba(0, 210, 254, 0.9);
+  }
+
+  .roi-range:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 4px rgba(0, 210, 254, 0.35), 0 0 22px -2px rgba(0, 210, 254, 0.9);
+  }
+
+  .roi-axis-label {
+    fill: rgba(255, 255, 255, 0.5);
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .roi-bar {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1), fill 300ms ease-out;
+  }
+
+  .roi-bar-revenue {
+    fill: #00d2fe;
+  }
+
+  .roi-bar-revenue.is-deficit {
+    fill: #f59e0b;
+  }
+
+  .roi-bar-capex {
+    fill: #1e293b;
+    stroke: rgba(148, 163, 184, 0.55);
+    stroke-width: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .roi-range::-webkit-slider-thumb,
+    .roi-range::-moz-range-thumb,
+    .roi-bar {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script>
+  interface RoiCfg {
+    id: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    unit: 'int' | 'eur' | 'pct' | 'coef';
+    ariaOne: string;
+    ariaMany: string;
+  }
+
+  const YEARS = 5;
+  const DISCOUNT_RATE = 1.1;
+  const MAINTENANCE_RATE = 0.005;
+  const root = document.getElementById('roi');
+  const cfgNode = document.getElementById('roi-config');
+
+  if (root && cfgNode) {
+    const cfgs: RoiCfg[] = JSON.parse(cfgNode.textContent || '[]');
+    const ranges = cfgs
+      .map((c) => document.getElementById(`roi-${c.id}`) as HTMLInputElement | null)
+      .filter((el): el is HTMLInputElement => el !== null);
+
+    const live = document.getElementById('roi-live');
+    const chart = document.getElementById('roi-chart');
+    const chartNote = document.getElementById('roi-chart-note');
+    const statusBox = document.getElementById('roi-status');
+    const badge = document.getElementById('roi-payback-badge');
+    const badgeText = document.getElementById('roi-payback-badge-text');
+    const badgeDot = document.getElementById('roi-payback-dot');
+    const paybackNote = document.getElementById('roi-payback-note');
+    const resetBtn = document.getElementById('roi-reset') as HTMLButtonElement | null;
+
+    const eurFmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    const decFmt = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const intFmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+    const pctFmt = new Intl.NumberFormat('fr-FR', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reduceMotion = () => motionQuery.matches;
+
+    const current = new Map<string, number>();
+    const frames = new Map<string, number>();
+    let liveTimer = 0;
+
+    const nbsp = (s: string) => s.replace(/\u00a0/g, ' ');
+
+    function fmtInput(value: number, unit: RoiCfg['unit']): string {
+      if (unit === 'eur') return eurFmt.format(value);
+      if (unit === 'pct') return `${intFmt.format(value)} %`;
+      if (unit === 'coef') return `${decFmt.format(value)} ×`;
+      return intFmt.format(value);
+    }
+
+    function readValues(): Record<string, number> {
+      const v: Record<string, number> = {};
+      cfgs.forEach((c) => {
+        const el = document.getElementById(`roi-${c.id}`) as HTMLInputElement | null;
+        v[c.id] = el ? Number(el.value) : c.value;
+      });
+      return v;
+    }
+
+    function compute(v: Record<string, number>) {
+      const seatsRetrofit = v.aircraft * v.seats;
+      const annualPax = seatsRetrofit * (v.occupancy / 100) * 365 * v.seasonality;
+      const annualRevenue = annualPax * v.fare;
+      const capex = seatsRetrofit * v.unitCost;
+      const monthlyRevenue = annualRevenue / 12;
+      const paybackMonths = monthlyRevenue > 0 ? capex / monthlyRevenue : Number.POSITIVE_INFINITY;
+      const netYear1 = annualRevenue - capex;
+      const maintenance = capex * MAINTENANCE_RATE;
+      let npv5 = 0;
+      for (let y = 1; y <= YEARS; y += 1) {
+        npv5 += (annualRevenue - maintenance) / Math.pow(DISCOUNT_RATE, y);
+      }
+      const roiPct = capex > 0 ? (npv5 / capex - 1) * 100 : 0;
+      return { seatsRetrofit, annualPax, annualRevenue, capex, paybackMonths, netYear1, npv5, roiPct, maintenance, revenue5: annualRevenue * YEARS };
+    }
+
+    function paint(el: HTMLElement, value: number) {
+      const kind = el.getAttribute('data-kind');
+      if (kind === 'currency') el.textContent = eurFmt.format(value);
+      else if (kind === 'percent') el.textContent = pctFmt.format(value / 100);
+      else if (kind === 'months') el.textContent = Number.isFinite(value) ? `${decFmt.format(value)} mois` : 'n/a';
+      else el.textContent = intFmt.format(value);
+    }
+
+    function animateTo(el: HTMLElement, target: number) {
+      const key = el.id;
+      const from = current.has(key) ? (current.get(key) as number) : target;
+      current.set(key, target);
+
+      if (from === target || reduceMotion()) {
+        const existing = frames.get(key);
+        if (existing) cancelAnimationFrame(existing);
+        frames.delete(key);
+        paint(el, target);
+        return;
+      }
+
+      const started = performance.now();
+      const duration = 620;
+      const prev = frames.get(key);
+      if (prev) cancelAnimationFrame(prev);
+
+      const step = (now: number) => {
+        const t = Math.min((now - started) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const value = from + (target - from) * eased;
+        current.set(key, value);
+        paint(el, value);
+        if (t < 1) {
+          frames.set(key, requestAnimationFrame(step));
+        } else {
+          frames.delete(key);
+          current.set(key, target);
+          paint(el, target);
+        }
+      };
+      frames.set(key, requestAnimationFrame(step));
+    }
+
+    function updateRangeFill(el: HTMLInputElement) {
+      const min = Number(el.min);
+      const max = Number(el.max);
+      const v = Number(el.value);
+      const ratio = max > min ? ((v - min) / (max - min)) * 100 : 0;
+      el.style.setProperty('--roi-fill', `${Math.max(0, Math.min(100, ratio))}%`);
+    }
+
+    function updatePayback(months: number) {
+      if (!badge || !badgeText || !badgeDot || !statusBox || !paybackNote) return;
+
+      const cls = [
+        'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-body-sm font-semibold transition-colors duration-300',
+      ];
+
+      if (!Number.isFinite(months)) {
+        badge.className = `${cls.join(' ')} border-red-500/40 bg-red-500/10 text-red-300`;
+        badgeDot.className = 'h-2 w-2 rounded-full bg-red-400';
+        badgeText.textContent = 'amortissement non atteint';
+        statusBox.setAttribute('data-state', 'fail');
+        paybackNote.textContent = 'Aucun revenu mensuel exploitable : le CAPEX n’est pas amorti.';
+        return;
+      }
+
+      if (months < 3) {
+        badge.className = `${cls.join(' ')} border-electric-cyan/45 bg-electric-cyan/10 text-electric-cyan`;
+        badgeDot.className = 'h-2 w-2 rounded-full bg-electric-cyan shadow-glow-cyan';
+        badgeText.textContent = `objectif < 3 mois — atteint en ${decFmt.format(months)} mois`;
+        statusBox.setAttribute('data-state', 'ok');
+        paybackNote.textContent = 'Retour sur investissement aligné sur l’objectif contractuel (< 3 mois).';
+      } else if (months <= 6) {
+        badge.className = `${cls.join(' ')} border-amber-400/40 bg-amber-400/10 text-amber-300`;
+        badgeDot.className = 'h-2 w-2 rounded-full bg-amber-400';
+        badgeText.textContent = `objectif < 3 mois — non atteint (${decFmt.format(months)} mois)`;
+        statusBox.setAttribute('data-state', 'warn');
+        paybackNote.textContent = 'Amortissement supérieur à l’objectif de 3 mois. Augmentez le tarif ou réduisez le CAPEX unitaire.';
+      } else {
+        badge.className = `${cls.join(' ')} border-red-500/40 bg-red-500/10 text-red-300`;
+        badgeDot.className = 'h-2 w-2 rounded-full bg-red-400';
+        badgeText.textContent = `objectif < 3 mois — non atteint (${decFmt.format(months)} mois)`;
+        statusBox.setAttribute('data-state', 'fail');
+        paybackNote.textContent = 'Amortissement très supérieur à l’objectif. Le déploiement n’est pas rentable à 5 ans sur ces hypothèses.';
+      }
+    }
+
+    function updateChart(annualRevenue: number, capex: number) {
+      if (!chart || !chartNote) return;
+
+      const max = Math.max(annualRevenue * YEARS, capex, 1) * 1.12;
+      const deficit = annualRevenue < capex;
+
+      for (let y = 1; y <= YEARS; y += 1) {
+        const cumRev = annualRevenue * y;
+        const revBar = document.getElementById(`roi-bar-rev-${y}`);
+        const capexBar = document.getElementById(`roi-bar-capex-${y}`);
+
+        const revRatio = Math.max(0, Math.min(1, cumRev / max));
+        const capexRatio = Math.max(0, Math.min(1, capex / max));
+
+        if (revBar) {
+          revBar.style.transform = 'scaleY(' + revRatio.toFixed(4) + ')';
+          revBar.classList.toggle('is-deficit', cumRev < capex);
+        }
+        if (capexBar) {
+          capexBar.style.transform = 'scaleY(' + capexRatio.toFixed(4) + ')';
+        }
+      }
+
+      [0, 0.25, 0.5, 0.75, 1].forEach((f) => {
+        const t = document.getElementById(`roi-axis-${f}`);
+        if (t) t.textContent = eurFmt.format(max * f);
+      });
+
+      const revenue5 = annualRevenue * YEARS;
+      const margin = revenue5 - capex;
+      chart.setAttribute(
+        'aria-label',
+        `Graphique comparatif sur ${YEARS} ans : revenu cumulé de ${nbsp(eurFmt.format(revenue5))} contre un CAPEX cumulé de ${nbsp(eurFmt.format(capex))}. Marge nette ${nbsp(eurFmt.format(margin))}.`,
+      );
+
+      if (deficit) {
+        chartNote.innerHTML =
+          `<span class="font-semibold text-amber-300">Déficit.</span> Le revenu annuel (${nbsp(eurFmt.format(annualRevenue))}) ` +
+          `est inférieur au CAPEX (${nbsp(eurFmt.format(capex))}). Sur 5 ans : ${nbsp(eurFmt.format(revenue5))} de revenus ` +
+          `contre ${nbsp(eurFmt.format(capex))} investis, soit <span class="font-semibold text-amber-300">${nbsp(eurFmt.format(margin))}</span> ` +
+          `de déficit cumulé. Le modèle ne redéploite pas le CAPEX sur ces hypothèses.`;
+      } else {
+        chartNote.innerHTML =
+          `Cumul 5 ans : ${nbsp(eurFmt.format(revenue5))} de revenus contre ${nbsp(eurFmt.format(capex))} de CAPEX — ` +
+          `marge nette <span class="font-semibold text-electric-cyan">${nbsp(eurFmt.format(margin))}</span>.`;
+      }
+    }
+
+    function render(announce: boolean) {
+      const values = readValues();
+
+      cfgs.forEach((cfg) => {
+        const el = document.getElementById(`roi-${cfg.id}`) as HTMLInputElement | null;
+        if (!el) return;
+        const v = values[cfg.id];
+        const display = fmtInput(v, cfg.unit);
+        const readout = document.getElementById(`roi-readout-${cfg.id}`);
+        if (readout) readout.textContent = display;
+        const unitWord = v > 1 ? cfg.ariaMany : cfg.ariaOne;
+        el.setAttribute('aria-valuetext', `${nbsp(display)} ${unitWord}`);
+        updateRangeFill(el);
+      });
+
+      const m = compute(values);
+
+      const targets: Array<[string, number]> = [
+        ['roi-out-annual-revenue', m.annualRevenue],
+        ['roi-out-payback-months', m.paybackMonths],
+        ['roi-out-roi-pct', m.roiPct],
+        ['roi-out-capex-total', m.capex],
+        ['roi-out-revenue-pax', m.annualPax > 0 ? m.annualRevenue / m.annualPax : 0],
+        ['roi-out-revenue-5y', m.revenue5],
+      ];
+      targets.forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) animateTo(el, value);
+      });
+
+      updatePayback(m.paybackMonths);
+      updateChart(m.annualRevenue, m.capex);
+
+      if (announce && live) {
+        window.clearTimeout(liveTimer);
+        liveTimer = window.setTimeout(() => {
+          live.textContent = [
+            `Flotte de ${intFmt.format(values.aircraft)} avion${values.aircraft > 1 ? 's' : ''}, ${intFmt.format(m.seatsRetrofit)} sièges retrofités.`,
+            `Revenu passager annuel : ${nbsp(eurFmt.format(m.annualRevenue))}.`,
+            `Revenu passager par an et par passager : ${nbsp(eurFmt.format(m.annualPax > 0 ? m.annualRevenue / m.annualPax : 0))}.`,
+            `CAPEX total : ${nbsp(eurFmt.format(m.capex))}.`,
+            `Amortissement : ${Number.isFinite(m.paybackMonths) ? `${nbsp(decFmt.format(m.paybackMonths))} mois` : 'non atteint'}.`,
+            `ROI net 5 ans : ${nbsp(pctFmt.format(m.roiPct / 100))}.`,
+            `Revenu cumulé 5 ans : ${nbsp(eurFmt.format(m.revenue5))}.`,
+          ].join(' ');
+        }, 600);
+      }
+    }
+
+    ranges.forEach((el) => {
+      el.addEventListener('input', () => {
+        el.classList.add('is-active');
+        render(true);
+      });
+      el.addEventListener('change', () => el.classList.remove('is-active'));
+      el.addEventListener('pointerup', () => el.classList.remove('is-active'));
+      updateRangeFill(el);
+    });
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        cfgs.forEach((cfg) => {
+          const el = document.getElementById(`roi-${cfg.id}`) as HTMLInputElement | null;
+          if (el) el.value = String(cfg.value);
+        });
+        render(true);
+        const first = ranges[0];
+        if (first) first.focus();
+      });
+    }
+
+    render(false);
+  }
+</script>
